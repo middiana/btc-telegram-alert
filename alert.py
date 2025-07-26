@@ -1,8 +1,9 @@
 import requests
 import time
+import os  # 환경변수 사용을 위한 모듈
 
-BOT_TOKEN = "여기에_당신의_텔레그램_봇_토큰"
-CHAT_ID = "여기에_당신의_챗_ID"
+BOT_TOKEN = os.environ.get("TELEGRAM_TOKEN")
+CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
 def send_telegram_alert():
     message = """
