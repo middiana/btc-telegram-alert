@@ -1,6 +1,5 @@
+ccxt
 pandas
 matplotlib
-mplfinance
+pyTelegramBotAPI
 ta
-flask
-python-telegram-bot==13.15
