@@ -1,6 +1,6 @@
-ccxt
 pandas
-numpy
+matplotlib
+mplfinance
 ta
-yfinance
-requests
+flask
+python-telegram-bot==13.15
