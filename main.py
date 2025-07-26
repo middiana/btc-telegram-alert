@@ -13,7 +13,15 @@ BOT_TOKEN = '8454656493:AAGGjH4ztzMn-HbIeMtCfrgsXLwModMDbC8'
 CHAT_ID = '742635537'
 SYMBOL = 'BTC/USDT'
 INTERVALS = ['5m', '15m', '30m', '1h', '4h', '1d']
-EXCHANGE = ccxt.binance({ 'options': { 'defaultType': 'future' } })
+
+# ✅ Bitget 선물 설정
+EXCHANGE = ccxt.bitget({
+    'enableRateLimit': True,
+    'options': {
+        'defaultType': 'swap'
+    }
+})
+
 bot = telebot.TeleBot(BOT_TOKEN)
 
 # ✅ 캔들 데이터 가져오기
@@ -51,11 +59,11 @@ def build_sr_table():
         levels[tf] = (s, r)
     return levels
 
-# ✅ 텔레그램 메시지 전송
+# ✅ 텔레그램 전송
 def send_alert(message):
     bot.send_message(chat_id=CHAT_ID, text=message)
 
-# ✅ 메인 루프
+# ✅ 메인 실행 루프
 def main_loop():
     while True:
         df_15m = fetch_ohlcv(SYMBOL, '15m')
@@ -77,7 +85,7 @@ def main_loop():
         sr_text = "\n".join([f"• {tf}: 지지 {s} / 저항 {r}" for tf, (s, r) in sr_levels.items()])
 
         msg = f"""
-📢 [BTCUSDT] {direction} 신호 발생 (선물 기준)
+📢 [BTCUSDT] {direction} 신호 발생 (비트겟 선물 기준)
 
 ✅ RSI: {rsi:.1f} / ✅ 볼밴 하단: {bb_l:.2f} / ✅ EMA20 지지: {ema:.2f}
 
@@ -92,8 +100,8 @@ def main_loop():
         """.strip()
 
         send_alert(msg)
-        time.sleep(300)  # 5분 대기
+        time.sleep(300)
 
-# ✅ 실행
+# ✅ 시작
 if __name__ == "__main__":
     main_loop()
