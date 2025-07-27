@@ -88,3 +88,19 @@ def check_entry_signal():
         return message
 
     return None
+
+        # 지지/저항/채널 포맷 정리
+        sr_text = "\n📊 *지지/저항 요약:*\n"
+        for tf, values in sr.items():
+            s = values["support"]
+            r = values["resistance"]
+            sr_text += f"- {tf}: {s} / {r}\n"
+
+        sr_text += "\n📈 *채널 범위:*\n"
+        for tf, values in sr.items():
+            low = values["channel_low"]
+            high = values["channel_high"]
+            sr_text += f"- {tf}: {low} ~ {high}\n"
+
+        message += "\n" + sr_text
+
