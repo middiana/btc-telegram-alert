@@ -1,3 +1,12 @@
+# Interval 문자열을 초(seconds) 단위 숫자로 바꿔주는 표
+INTERVAL_SECONDS = {
+    '5m': 300,
+    '15m': 900,
+    '30m': 1800,
+    '1h': 3600,
+    '4h': 14400,
+    '1d': 86400
+}
 import requests
 import pandas as pd
 import numpy as np
@@ -18,7 +27,8 @@ RSI_THRESHOLD = 35
 # ------------------------
 
 def fetch_klines(symbol, interval):
-    url = f"https://api.bitget.com/api/v2/market/candles?symbol={symbol}&granularity={interval}&limit={LIMIT}"
+    seconds = INTERVAL_SECONDS[interval]  # ← 이 줄 새로 추가
+    url = f"https://api.bitget.com/api/v2/market/candles?symbol={symbol}&granularity={seconds}&limit={LIMIT}"  # ← 여기서 interval → seconds
     response = requests.get(url)
     data = response.json()
     if data['code'] != '00000':
