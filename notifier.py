@@ -1,9 +1,8 @@
 # notifier.py
 import requests
 
-# 실제 값으로 교체됨
-BOT_TOKEN = "여기에_당신의_텔레그램_봇_토큰"
-CHAT_ID = "여기에_당신의_챗_ID"
+BOT_TOKEN = "8454656493:AAGjqH4zt2Mn-HBleMtCrFgsXLwModMDbC8"
+CHAT_ID = "7426355357"
 
 def send_telegram_alert(message):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
