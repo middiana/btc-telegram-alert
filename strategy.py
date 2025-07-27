@@ -23,30 +23,29 @@ def check_entry_signal():
     df = get_binance_ohlcv()
     current_price = df["close"].iloc[-1]
 
-    # RSI 조건
+    # RSI
     df["rsi"] = ta.momentum.RSIIndicator(df["close"], window=14).rsi()
     rsi_condition = df["rsi"].iloc[-1] < 40
 
-    # 볼린저 밴드 조건
+    # 볼린저 밴드
     bb = ta.volatility.BollingerBands(df["close"], window=20, window_dev=2)
     df["bb_low"] = bb.bollinger_lband()
-    bb_condition = current_price <= df["bb_low"].iloc[-1] * 1.01  # 하단에서 1% 이내
+    bb_condition = current_price <= df["bb_low"].iloc[-1] * 1.01
 
-    # EMA 지지 조건
+    # EMA
     df["ema20"] = ta.trend.EMAIndicator(df["close"], window=20).ema_indicator()
     df["ema50"] = ta.trend.EMAIndicator(df["close"], window=50).ema_indicator()
     ema_condition = current_price >= min(df["ema20"].iloc[-1], df["ema50"].iloc[-1])
 
-    # 지지선 접근 조건
+    # 지지선 접근
     sr = get_support_resistance()
     near_support_count = 0
     for tf, values in sr.items():
-        support = values["support"]
-        if current_price <= support * 1.02:
+        if current_price <= values["support"] * 1.02:
             near_support_count += 1
     support_condition = near_support_count >= 3
 
-    # 추세 둔화 / 반전형 캔들 조건
+    # 추세 둔화 / 반전형 캔들
     last_3 = df.iloc[-3:]
     range1 = last_3["high"].iloc[0] - last_3["low"].iloc[0]
     range2 = last_3["high"].iloc[1] - last_3["low"].iloc[1]
@@ -61,7 +60,7 @@ def check_entry_signal():
 
     reversal_condition = range_condition or hammer_condition
 
-    # 조건 만족 개수
+    # 총 조건 만족 개수
     satisfied = sum([
         rsi_condition,
         bb_condition,
@@ -85,22 +84,8 @@ def check_entry_signal():
             f"{'• 지지선 접근 (3개 이상)\n' if support_condition else ''}"
             f"{'• 추세 둔화 or 반전형 캔들\n' if reversal_condition else ''}"
         )
-        return message
 
-    return None
-
-        # 지지/저항/채널 포맷 정리
+        # 지지/저항 요약
         sr_text = "\n📊 *지지/저항 요약:*\n"
         for tf, values in sr.items():
-            s = values["support"]
-            r = values["resistance"]
-            sr_text += f"- {tf}: {s} / {r}\n"
-
-        sr_text += "\n📈 *채널 범위:*\n"
-        for tf, values in sr.items():
-            low = values["channel_low"]
-            high = values["channel_high"]
-            sr_text += f"- {tf}: {low} ~ {high}\n"
-
-        message += "\n" + sr_text
-
+            sr
