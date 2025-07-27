@@ -1,4 +1,3 @@
-# strategy.py
 import requests
 import pandas as pd
 import ta
@@ -60,7 +59,7 @@ def check_entry_signal():
 
     reversal_condition = range_condition or hammer_condition
 
-    # 총 조건 만족 개수
+    # 조건 체크
     satisfied = sum([
         rsi_condition,
         bb_condition,
@@ -85,7 +84,16 @@ def check_entry_signal():
             f"{'• 추세 둔화 or 반전형 캔들\n' if reversal_condition else ''}"
         )
 
-        # 지지/저항 요약
+        # 지지/저항 메시지 정리
         sr_text = "\n📊 *지지/저항 요약:*\n"
         for tf, values in sr.items():
-            sr
+            sr_text += f"- {tf}: {values['support']} / {values['resistance']}\n"
+
+        sr_text += "\n📈 *채널 범위:*\n"
+        for tf, values in sr.items():
+            sr_text += f"- {tf}: {values['channel_low']} ~ {values['channel_high']}\n"
+
+        message += "\n" + sr_text
+        return message
+
+    return None
