@@ -46,8 +46,29 @@ def check_entry_signal():
             near_support_count += 1
     support_condition = near_support_count >= 3
 
-    # 조건 만족 수 체크
-    satisfied = sum([rsi_condition, bb_condition, ema_condition, support_condition])
+    # 추세 둔화 / 반전형 캔들 조건
+    last_3 = df.iloc[-3:]
+    range1 = last_3["high"].iloc[0] - last_3["low"].iloc[0]
+    range2 = last_3["high"].iloc[1] - last_3["low"].iloc[1]
+    range3 = last_3["high"].iloc[2] - last_3["low"].iloc[2]
+    range_condition = range3 < range2 < range1
+
+    last = df.iloc[-1]
+    body = abs(last["close"] - last["open"])
+    lower_shadow = min(last["open"], last["close"]) - last["low"]
+    upper_shadow = last["high"] - max(last["open"], last["close"])
+    hammer_condition = lower_shadow > body * 1.5 and upper_shadow < body * 0.5
+
+    reversal_condition = range_condition or hammer_condition
+
+    # 조건 만족 개수
+    satisfied = sum([
+        rsi_condition,
+        bb_condition,
+        ema_condition,
+        support_condition,
+        reversal_condition
+    ])
 
     if satisfied >= 2:
         stop_loss = round(current_price * 0.95, 2)
@@ -62,6 +83,8 @@ def check_entry_signal():
             f"{'• 볼밴 하단 접근\n' if bb_condition else ''}"
             f"{'• EMA 지지\n' if ema_condition else ''}"
             f"{'• 지지선 접근 (3개 이상)\n' if support_condition else ''}"
+            f"{'• 추세 둔화 or 반전형 캔들\n' if reversal_condition else ''}"
         )
         return message
+
     return None
