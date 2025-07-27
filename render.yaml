@@ -1,1 +1,6 @@
-
+services:
+  - type: worker
+    name: btc-telegram-alert
+    runtime: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python main.py"
