@@ -26,19 +26,27 @@ TAKE_PROFIT_PCT = 0.10
 RSI_THRESHOLD = 35
 # ------------------------
 
-def fetch_klines(symbol, interval):
-    seconds = INTERVAL_SECONDS[interval]  # ← 이 줄 새로 추가
-    url = f"https://api.bitget.com/api/v2/market/candles?symbol={symbol}&granularity={seconds}&limit={LIMIT}"  # ← 여기서 interval → seconds
+def def fetch_klines(symbol, interval):
+    seconds = INTERVAL_SECONDS[interval]
+    url = f"https://api.bitget.com/api/v2/market/candles?symbol={symbol}&granularity={seconds}&limit={LIMIT}"
     response = requests.get(url)
-    data = response.json()
-    if data['code'] != '00000':
-        raise Exception(f"Bitget API 오류: {data}")
-    df = pd.DataFrame(data['data'], columns=['timestamp','open','high','low','close','volume','quoteVol'])
-    df['time'] = pd.to_datetime(df['timestamp'], unit='ms')
-    df = df.sort_values('time')
-    df.set_index('time', inplace=True)
-    df = df.astype(float)
-    return df[['open','high','low','close','volume']]
+
+    if response.status_code != 200:
+        print(f"[에러] 응답 실패 ({response.status_code}): {url}")
+        return []
+
+    try:
+        data = response.json()
+    except ValueError as e:
+        print(f"[에러] JSON 파싱 실패: {e}")
+        print(f"응답 내용: {response.text}")
+        return []
+
+    if not data or 'data' not in data:
+        print(f"[에러] 비어 있는 데이터 또는 'data' 없음: {data}")
+        return []
+
+    return data['data']
 
 def compute_rsi(prices, period=14):
     delta = prices.diff()
