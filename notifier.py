@@ -1,8 +1,9 @@
+import os
 import requests
 from datetime import datetime
 
-BOT_TOKEN = "8454656493:AAGjqH4zt2Mn-HBleMtCrFgsXLwModMDbC8"
-CHAT_ID = "7426355357"
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+CHAT_ID = os.getenv("CHAT_ID")
 
 def send_telegram_alert(row, checks, matched_count):
     check_lines = []
