@@ -27,7 +27,6 @@ def send_telegram_alert(row, checks, matched_count):
 
 ⏰ 알림시간: {time_str} (UTC+9)
 """
-
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     payload = {
         "chat_id": CHAT_ID,
