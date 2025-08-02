@@ -4,9 +4,9 @@ import pandas as pd
 def get_bitget_data():
     url = "https://api.bitget.com/api/mix/v1/market/candles"
     params = {
-        "symbol": "BTCUSDT_UMCBL",      # Bitget USDT 선물 심볼 정확히 일치해야 함
-        "granularity": "900",           # 15분봉 (900초)
-        "productType": "umcbl"          # 선물: umcbl (소문자 정확히)
+        "symbol": "BTCUSDT",          # ✅ 여기를 'BTCUSDT'만으로!
+        "granularity": "900",         # ✅ 15분봉 (초 단위)
+        "productType": "umcbl"        # ✅ 무기한 USDT 선물
     }
 
     df = pd.DataFrame()
