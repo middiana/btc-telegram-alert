@@ -4,9 +4,9 @@ import pandas as pd
 def fetch_latest_15m():
     url = "https://api.bitget.com/api/mix/v1/market/candles"
     params = {
-        "symbol": "BTCUSDT",
-        "granularity": "900",  # 15분 = 900초
-        "productType": "umcbl"  # ← 중요! USDT 선물 전용
+        "symbol": "BTCUSDT_UMCBL",     # ✅ 정확한 선물 심볼명
+        "granularity": "900",          # 15분
+        "productType": "umcbl"         # USDT 선물
     }
 
     for i in range(3):
