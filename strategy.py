@@ -1,63 +1,63 @@
 import requests
 import pandas as pd
+import datetime
 
-def fetch_latest_15m():
+def get_bitget_data():
     url = "https://api.bitget.com/api/mix/v1/market/candles"
     params = {
-        "symbol": "BTCUSDT_UMCBL",       # ✅ 선물 심볼
-        "granularity": "900",            # ✅ 15분봉
-        "productType": "umcbl"           # ✅ 반드시 포함 (에러 해결)
+        "symbol": "BTCUSDT_UMCBL",         # 선물 심볼
+        "granularity": "900",              # 15분봉 (900초)
+        "productType": "umcbl"             # ✅ 꼭 있어야 함!
     }
 
-    for i in range(3):
-        try:
-            print(f"🌐 Bitget API {i+1}차 요청 중...")
-            response = requests.get(url, params=params, timeout=10)
-            print(f"📥 응답 코드: {response.status_code}")
-            if response.status_code == 200:
-                data = response.json()["data"]
-                df = pd.DataFrame(data, columns=[
-                    "timestamp", "open", "high", "low", "close", "volume", "quoteVolume"])
-                df["close"] = df["close"].astype(float)
-                df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
-                df = df.sort_values("timestamp").reset_index(drop=True)
-                return df
-            else:
-                print(f"❌ 비정상 응답: {response.text}")
-        except Exception as e:
-            print(f"❗ 예외 발생: {e}")
+    df = pd.DataFrame()
+
+    for attempt in range(1, 4):
+        print(f"🌐 Bitget API {attempt}차 요청 중...")
+        response = requests.get(url, params=params)
+        print(f"📥 응답 코드: {response.status_code}")
+
+        if response.status_code == 200:
+            data = response.json().get("data", [])
+            if not data:
+                print("❌ 받은 데이터가 비어 있음.")
+                continue
+
+            df = pd.DataFrame(data, columns=[
+                "timestamp", "open", "high", "low", "close", "volume", "quoteVolume"
+            ])
+            df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
+            df = df.sort_values("timestamp").reset_index(drop=True)
+            return df
+        else:
+            print(f"❌ 비정상 응답: {response.text}")
+
     print("❌ 최종적으로 Bitget 데이터 수신 실패. 빈 DataFrame 반환")
-    return pd.DataFrame()
+    return df
 
 def check_signal():
     print("🔍 check_signal() 함수 실행 시작됨")
-    df = fetch_latest_15m()
+    df = get_bitget_data()
     print(f"📊 데이터 개수: {len(df)}")
 
     if df.empty:
         print("⚠️ 데이터가 비어 있습니다. 다음 시도까지 대기합니다.")
         return
 
-    df["rsi"] = df["close"].rolling(window=14).apply(
-        lambda x: 100 - 100 / (1 + ((x.diff().clip(lower=0).sum()) / (x.diff().clip(upper=0).abs().sum() + 1e-6)))
-    )
+    # 전략 조건 예시
+    df["close"] = df["close"].astype(float)
+    df["EMA20"] = df["close"].ewm(span=20).mean()
+    df["EMA50"] = df["close"].ewm(span=50).mean()
+    last = df.iloc[-1]
 
-    rsi_now = df["rsi"].iloc[-1]
-    close_now = df["close"].iloc[-1]
+    entry_conditions = []
 
-    ema20 = df["close"].ewm(span=20).mean()
-    ema_now = ema20.iloc[-1]
+    if last["close"] < last["EMA20"]:
+        entry_conditions.append("EMA20 아래")
+    if last["close"] < last["EMA50"]:
+        entry_conditions.append("EMA50 아래")
 
-    print(f"📉 현재 RSI: {rsi_now:.2f}, 종가: {close_now:.2f}, EMA20: {ema_now:.2f}")
-
-    signal_conditions = []
-
-    if rsi_now < 40:
-        signal_conditions.append("RSI < 40")
-    if close_now >= ema_now:
-        signal_conditions.append("EMA20 지지")
-
-    if len(signal_conditions) >= 2:
-        print(f"🚨 진입 조건 만족: {', '.join(signal_conditions)}")
+    if len(entry_conditions) >= 2:
+        print(f"✅ 진입 신호 발생: {entry_conditions}")
     else:
-        print("✅ 진입 조건 아직 미충족")
+        print(f"⏸️ 조건 미충족: {entry_conditions}")
