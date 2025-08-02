@@ -1,3 +1,4 @@
-from strategy import check_symbols
+from strategy import check_signal
 
-check_symbols()
+if __name__ == "__main__":
+    check_signal()
