@@ -5,7 +5,7 @@ def check_signal():
 
     url = "https://api.bitget.com/api/mix/v1/market/contracts"
     params = {
-        "productType": "umcbl"   # USDT 선물
+        "productType": "umcbl"  # USDT 선물 상품 타입
     }
 
     try:
