@@ -9,7 +9,7 @@ def check_symbols():
         response = requests.get(url, params=params, timeout=5)
         data = response.json()
         for item in data["data"]:
-            print(f"✅ 심볼: {item['symbol']} / 거래종류: {item['productType']}")
+            print(f"✅ 심볼: {item['symbol']}")
     except Exception as e:
         print(f"❌ 오류 발생: {e}")
 
