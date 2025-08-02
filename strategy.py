@@ -51,8 +51,8 @@ def check_signal():
         "RSI < 40": latest["rsi"] < 40,
         "볼밴 하단 접근": latest["close"] <= latest["bb_lower"] * 1.01,
         "EMA 지지": latest["close"] >= latest["ema20"] or latest["close"] >= latest["ema50"],
-        "다중 지지 접근": False,  # 추후 구현
-        "추세 둔화/반전": False   # 추후 구현
+        "다중 지지 접근": False,
+        "추세 둔화/반전": False
     }
 
     satisfied = [k for k, v in checks.items() if v]
