@@ -3,54 +3,67 @@ import pandas as pd
 from datetime import datetime
 from indicators import calculate_rsi, calculate_ema, calculate_bollinger_bands
 from notifier import send_telegram_alert
+import time
 
 def fetch_latest_15m():
     url = "https://api.bitget.com/api/mix/v1/market/candles"
     params = {
-        "symbol": "BTCUSDT_UMCBL",  # Bitget BTCUSDT 선물
-        "granularity": "900",       # 15분 = 900초
+        "symbol": "BTCUSDT_UMCBL",
+        "granularity": "900",  # 15분
         "limit": "100"
     }
 
-    try:
-        response = requests.get(url, params=params)
-        data = response.json().get("data", [])
+    for i in range(3):  # 최대 3번 시도
+        try:
+            print(f"🌐 Bitget API {i+1}차 요청 중...", flush=True)
+            response = requests.get(url, params=params)
+            print("📥 응답 코드:", response.status_code, flush=True)
 
-        if not data or len(data) == 0:
-            print("❗ Bitget에서 받은 데이터가 없습니다.")
-            return pd.DataFrame()
+            if response.status_code != 200:
+                print("❌ 비정상 응답:", response.text[:300], flush=True)
+                time.sleep(2)
+                continue
 
-        # Bitget 데이터는 내림차순이므로 정렬 필요
-        df = pd.DataFrame(data, columns=["timestamp", "open", "high", "low", "close", "volume"])
-        df = df.iloc[::-1]  # 시간 순 정렬 (가장 오래된 것이 위로)
+            json_data = response.json()
+            data = json_data.get("data", [])
 
-        df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
-        df[["open", "high", "low", "close", "volume"]] = df[["open", "high", "low", "close", "volume"]].astype(float)
+            if not data or len(data) == 0:
+                print("⚠️ 데이터가 비어 있음 (응답은 성공)", flush=True)
+                time.sleep(2)
+                continue
 
-        df["rsi"] = calculate_rsi(df["close"], 14)
-        df["ema20"] = calculate_ema(df["close"], 20)
-        df["ema50"] = calculate_ema(df["close"], 50)
-        df["bb_lower"], _ = calculate_bollinger_bands(df["close"])
+            # 정상 데이터 처리
+            df = pd.DataFrame(data, columns=["timestamp", "open", "high", "low", "close", "volume"])
+            df = df.iloc[::-1]
+            df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
+            df[["open", "high", "low", "close", "volume"]] = df[["open", "high", "low", "close", "volume"]].astype(float)
 
-        return df
+            df["rsi"] = calculate_rsi(df["close"], 14)
+            df["ema20"] = calculate_ema(df["close"], 20)
+            df["ema50"] = calculate_ema(df["close"], 50)
+            df["bb_lower"], _ = calculate_bollinger_bands(df["close"])
 
-    except Exception as e:
-        print(f"❗ Bitget 데이터 요청 중 오류: {e}")
-        return pd.DataFrame()
+            return df
+
+        except Exception as e:
+            print(f"❗ 요청 중 예외 발생 ({i+1}차): {e}", flush=True)
+            time.sleep(2)
+
+    print("❌ 최종적으로 Bitget 데이터 수신 실패. 빈 DataFrame 반환", flush=True)
+    return pd.DataFrame()
 
 def check_signal():
-    print("🔍 check_signal() 함수 실행 시작됨")
+    print("🔍 check_signal() 함수 실행 시작됨", flush=True)
 
     df = fetch_latest_15m()
-
-    print(f"📊 데이터 개수: {len(df)}")
+    print(f"📊 데이터 개수: {len(df)}", flush=True)
 
     if df.empty:
-        print("⚠️ 데이터가 비어 있습니다. 다음 시도까지 대기합니다.")
+        print("⚠️ 데이터가 비어 있습니다. 다음 시도까지 대기합니다.", flush=True)
         return
 
     latest = df.iloc[-1]
-    print(f"✅ 최신 데이터: {latest.to_dict()}")
+    print(f"✅ 최신 데이터: {latest.to_dict()}", flush=True)
 
     checks = {
         "RSI < 40": latest["rsi"] < 40,
@@ -61,10 +74,10 @@ def check_signal():
     }
 
     satisfied = [k for k, v in checks.items() if v]
-    print(f"🎯 만족 조건: {satisfied}")
+    print(f"🎯 만족 조건: {satisfied}", flush=True)
 
     if len(satisfied) >= 2:
-        print("🚀 조건 만족 → 텔레그램 알림 전송")
+        print("🚀 조건 만족 → 텔레그램 알림 전송", flush=True)
         send_telegram_alert(latest, checks, len(satisfied))
     else:
-        print("⏳ 조건 미충족 → 대기")
+        print("⏳ 조건 미충족 → 대기", flush=True)
