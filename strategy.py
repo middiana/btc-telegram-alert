@@ -8,8 +8,9 @@ import time
 def fetch_latest_15m():
     url = "https://api.bitget.com/api/mix/v1/market/candles"
     params = {
-        "symbol": "BTCUSDT",         # ✅ 선물 기준 심볼 (수정됨)
-        "granularity": "900"         # ✅ 15분봉 (900초)
+        "symbol": "BTCUSDT",         # ✅ 선물 심볼
+        "granularity": "900",        # ✅ 15분봉
+        "productType": "umcbl"       # ✅ usdt 무기한 선물 마켓
     }
 
     for i in range(3):  # 최대 3번 시도
@@ -31,7 +32,6 @@ def fetch_latest_15m():
                 time.sleep(2)
                 continue
 
-            # 정상 데이터 처리
             df = pd.DataFrame(data, columns=["timestamp", "open", "high", "low", "close", "volume"])
             df = df.iloc[::-1]
             df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
