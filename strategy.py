@@ -20,7 +20,7 @@ def fetch_latest_15m():
             print("❗ Bitget에서 받은 데이터가 없습니다.")
             return pd.DataFrame()
 
-        # Bitget 데이터는 내림차순이라 정렬 필요
+        # Bitget 데이터는 내림차순이므로 정렬 필요
         df = pd.DataFrame(data, columns=["timestamp", "open", "high", "low", "close", "volume"])
         df = df.iloc[::-1]  # 시간 순 정렬 (가장 오래된 것이 위로)
 
@@ -39,13 +39,18 @@ def fetch_latest_15m():
         return pd.DataFrame()
 
 def check_signal():
+    print("🔍 check_signal() 함수 실행 시작됨")
+
     df = fetch_latest_15m()
+
+    print(f"📊 데이터 개수: {len(df)}")
 
     if df.empty:
         print("⚠️ 데이터가 비어 있습니다. 다음 시도까지 대기합니다.")
         return
 
     latest = df.iloc[-1]
+    print(f"✅ 최신 데이터: {latest.to_dict()}")
 
     checks = {
         "RSI < 40": latest["rsi"] < 40,
@@ -56,5 +61,10 @@ def check_signal():
     }
 
     satisfied = [k for k, v in checks.items() if v]
+    print(f"🎯 만족 조건: {satisfied}")
+
     if len(satisfied) >= 2:
+        print("🚀 조건 만족 → 텔레그램 알림 전송")
         send_telegram_alert(latest, checks, len(satisfied))
+    else:
+        print("⏳ 조건 미충족 → 대기")
