@@ -1,36 +1,38 @@
 import requests
 import pandas as pd
-import datetime
 
 def get_bitget_data():
     url = "https://api.bitget.com/api/mix/v1/market/candles"
     params = {
-        "symbol": "BTCUSDT_UMCBL",         # 선물 심볼
-        "granularity": "900",              # 15분봉 (900초)
-        "productType": "umcbl"             # ✅ 꼭 있어야 함!
+        "symbol": "BTCUSDT_UMCBL",      # Bitget USDT 선물 심볼 정확히 일치해야 함
+        "granularity": "900",           # 15분봉 (900초)
+        "productType": "umcbl"          # 선물: umcbl (소문자 정확히)
     }
 
     df = pd.DataFrame()
 
     for attempt in range(1, 4):
         print(f"🌐 Bitget API {attempt}차 요청 중...")
-        response = requests.get(url, params=params)
-        print(f"📥 응답 코드: {response.status_code}")
+        try:
+            response = requests.get(url, params=params, timeout=5)
+            print(f"📥 응답 코드: {response.status_code}")
 
-        if response.status_code == 200:
-            data = response.json().get("data", [])
-            if not data:
-                print("❌ 받은 데이터가 비어 있음.")
-                continue
+            if response.status_code == 200:
+                data = response.json().get("data", [])
+                if not data:
+                    print("❌ 받은 데이터가 비어 있음.")
+                    continue
 
-            df = pd.DataFrame(data, columns=[
-                "timestamp", "open", "high", "low", "close", "volume", "quoteVolume"
-            ])
-            df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
-            df = df.sort_values("timestamp").reset_index(drop=True)
-            return df
-        else:
-            print(f"❌ 비정상 응답: {response.text}")
+                df = pd.DataFrame(data, columns=[
+                    "timestamp", "open", "high", "low", "close", "volume", "quoteVolume"
+                ])
+                df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
+                df = df.sort_values("timestamp").reset_index(drop=True)
+                return df
+            else:
+                print(f"❌ 비정상 응답: {response.text}")
+        except Exception as e:
+            print(f"❌ 요청 중 에러: {e}")
 
     print("❌ 최종적으로 Bitget 데이터 수신 실패. 빈 DataFrame 반환")
     return df
@@ -44,7 +46,6 @@ def check_signal():
         print("⚠️ 데이터가 비어 있습니다. 다음 시도까지 대기합니다.")
         return
 
-    # 전략 조건 예시
     df["close"] = df["close"].astype(float)
     df["EMA20"] = df["close"].ewm(span=20).mean()
     df["EMA50"] = df["close"].ewm(span=50).mean()
