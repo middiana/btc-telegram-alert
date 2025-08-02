@@ -8,9 +8,8 @@ import time
 def fetch_latest_15m():
     url = "https://api.bitget.com/api/mix/v1/market/candles"
     params = {
-        "symbol": "BTCUSDT_UMCBL",
-        "granularity": "900",  # 15분
-        "limit": "100"
+        "symbol": "BTCUSDT",         # ✅ 선물 기준 심볼 (수정됨)
+        "granularity": "900"         # ✅ 15분봉 (900초)
     }
 
     for i in range(3):  # 최대 3번 시도
