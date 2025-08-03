@@ -16,7 +16,8 @@ def get_ohlcv(symbol, interval):
     url = "https://api.bitget.com/api/mix/v1/market/candles"
     params = {
         "symbol": symbol,
-        "granularity": granularity
+        "granularity": granularity,
+        "productType": "umcbl"  # ← 중요! 선물(Mix)의 필수 파라미터
     }
 
     headers = {
@@ -45,6 +46,7 @@ def get_ohlcv(symbol, interval):
     except Exception as e:
         print(f"❌ get_ohlcv 예외 발생: {e}")
         return pd.DataFrame()
+
 
 def calculate_rsi(df, period=14):
     delta = df["close"].diff()
