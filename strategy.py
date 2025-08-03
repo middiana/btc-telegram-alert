@@ -1,99 +1,62 @@
 import pandas as pd
-import numpy as np
-from utils import (
-    get_ohlcv, get_support_resistance_levels,
-    get_channel_levels, get_nasdaq_info, get_latest_news
-)
+from utils import get_ohlcv
 from config import SYMBOL, INTERVAL
 
+def calculate_indicators(df):
+    df['close'] = df['close'].astype(float)
+    df['RSI'] = df['close'].diff().apply(lambda x: max(x, 0)).rolling(14).mean() / \
+                df['close'].diff().abs().rolling(14).mean() * 100
+    df['EMA20'] = df['close'].ewm(span=20, adjust=False).mean()
+    df['EMA50'] = df['close'].ewm(span=50, adjust=False).mean()
+    df['upper_band'] = df['close'].rolling(window=20).mean() + 2 * df['close'].rolling(window=20).std()
+    df['lower_band'] = df['close'].rolling(window=20).mean() - 2 * df['close'].rolling(window=20).std()
+    return df
+
 def check_long_signal():
-    try:
-        ohlcv = get_ohlcv(SYMBOL, INTERVAL)
-        if ohlcv is None:
-            return None
-
-        df = pd.DataFrame(ohlcv, columns=[
-            "timestamp", "open", "high", "low", "close", "volume"
-        ])
-        df["close"] = df["close"].astype(float)
-        df["low"] = df["low"].astype(float)
-        df["high"] = df["high"].astype(float)
-
-        df["rsi"] = compute_rsi(df["close"])
-        df["ema20"] = df["close"].ewm(span=20).mean()
-        df["ema50"] = df["close"].ewm(span=50).mean()
-        df["basis"] = df["close"].rolling(window=20).mean()
-        df["stddev"] = df["close"].rolling(window=20).std()
-        df["upper"] = df["basis"] + 2 * df["stddev"]
-        df["lower"] = df["basis"] - 2 * df["stddev"]
-
-        latest = df.iloc[-1]
-        conditions = []
-
-        if latest["rsi"] < 40:
-            conditions.append("RSI < 40")
-        if latest["close"] <= latest["lower"] * 1.01:
-            conditions.append("볼린저 밴드 하단 접근")
-        if latest["close"] >= latest["ema20"]:
-            conditions.append("EMA20 지지")
-        if latest["close"] >= latest["ema50"]:
-            conditions.append("EMA50 지지")
-
-        support, resistance = get_support_resistance_levels(ohlcv)
-        if latest["close"] <= support * 1.01:
-            conditions.append("멀티타임프레임 지지선 접근")
-
-        entry_price = latest["close"]
-        stop_loss = round(entry_price * 0.95, 2)
-        take_profit = round(entry_price * 1.10, 2)
-
-        leverage = 2
-        if len(conditions) >= 4:
-            leverage = 5
-        elif len(conditions) == 3:
-            leverage = 3
-
-        channel_low, channel_high = get_channel_levels(ohlcv)
-        nasdaq = get_nasdaq_info()
-        news = get_latest_news()
-
-        if len(conditions) >= 2:
-            message = f"""
-📊 <b>롱 진입 시그널 발생!</b>
-🔹 전략: 영빈 선물전략 v1.2
-🔸 조건 만족: {len(conditions)}개 - {', '.join(conditions)}
-
-💰 진입가: <b>{entry_price:.2f}</b>
-📉 손절가: <b>{stop_loss:.2f}</b>
-📈 익절가: <b>{take_profit:.2f}</b>
-⚙️ 추천 레버리지: <b>{leverage}x</b>
-
-📌 지지/저항 (15분): {support:.2f} / {resistance:.2f}
-📌 채널 구간: {channel_low:.2f} ~ {channel_high:.2f}
-
-📊 나스닥 추세
-- 지지: {nasdaq['support']}, 저항: {nasdaq['resistance']}, RSI: {nasdaq['rsi']}
-
-🌐 주요 뉴스 요약:
-- {news[0]}
-- {news[1]}
-- {news[2]}
-"""
-            return message.strip()
-        else:
-            return None
-    except Exception as e:
-        print(f"❌ check_long_signal 실행 실패: {e}")
+    print("🚀 check_long_signal 실행 시도 중...")
+    raw_data = get_ohlcv(SYMBOL, INTERVAL, limit=100)
+    if raw_data is None:
         return None
 
-def compute_rsi(series, period=14):
-    delta = series.diff()
-    gain = delta.where(delta > 0, 0)
-    loss = -delta.where(delta < 0, 0)
+    df = pd.DataFrame(raw_data, columns=[
+        'timestamp', 'open', 'high', 'low', 'close', 'volume'
+    ])
+    df = calculate_indicators(df)
 
-    avg_gain = gain.rolling(window=period).mean()
-    avg_loss = loss.rolling(window=period).mean()
+    latest = df.iloc[-1]
+    conditions = []
 
-    rs = avg_gain / avg_loss
-    rsi = 100 - (100 / (1 + rs))
-    return rsi
+    if latest['RSI'] < 40:
+        conditions.append("🔹 RSI < 40")
+    if latest['close'] <= latest['lower_band'] * 1.01:
+        conditions.append("🔹 볼린저밴드 하단 접근")
+    if latest['close'] >= latest['EMA20']:
+        conditions.append("🔹 EMA20 지지")
+    if latest['close'] >= latest['EMA50']:
+        conditions.append("🔹 EMA50 지지")
+
+    if len(conditions) >= 2:
+        entry = float(latest['close'])
+        sl = round(entry * 0.95, 2)
+        tp = round(entry * 1.10, 2)
+
+        if len(conditions) >= 4:
+            leverage = "5x (강력 신호)"
+        elif len(conditions) == 3:
+            leverage = "3x (중간 신호)"
+        else:
+            leverage = "2x (약한 신호)"
+
+        message = f"""
+📢 [영빈 선물전략 v1.2] 롱 진입 신호 발생
+✅ 조건 만족: {len(conditions)}개
+{chr(10).join(conditions)}
+
+💰 진입가: {entry}
+🔻 손절가: {sl}
+🔺 익절가: {tp}
+⚙ 추천 레버리지: {leverage}
+"""
+        return message.strip()
+    else:
+        return None
