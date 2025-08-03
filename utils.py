@@ -6,14 +6,6 @@ import requests
 import pandas as pd
 from datetime import datetime
 
-import requests
-import pandas as pd
-from datetime import datetime
-
-import requests
-import pandas as pd
-from datetime import datetime
-
 def get_ohlcv(symbol, interval, limit=100):
     granularity_map = {
         "1m": 60,
@@ -28,15 +20,20 @@ def get_ohlcv(symbol, interval, limit=100):
 
     url = "https://api.bitget.com/api/mix/v1/market/candles"
     params = {
-        "symbol": symbol,          # 예: ETHUSDT_UMCBL
-        "granularity": granularity,  # ❗ string → int
-        "limit": limit               # ❗ string → int
+        "symbol": symbol,
+        "granularity": granularity,
+        "limit": limit
+    }
+
+    headers = {
+        "User-Agent": "Mozilla/5.0",  # ✅ 일부 서버에서 필수
+        "Accept": "application/json"
     }
 
     try:
-        response = requests.get(url, params=params)
+        response = requests.get(url, params=params, headers=headers)
         if response.status_code != 200:
-            print(f"❌ 데이터 요청 실패: {response.status_code}")
+            print(f"❌ 데이터 요청 실패: {response.status_code} - {response.text}")
             return pd.DataFrame()
 
         raw = response.json().get("data", [])
@@ -52,6 +49,7 @@ def get_ohlcv(symbol, interval, limit=100):
     except Exception as e:
         print(f"❌ get_ohlcv 예외 발생: {e}")
         return pd.DataFrame()
+
 
 def calculate_rsi(df, period=14):
     delta = df["close"].diff()
