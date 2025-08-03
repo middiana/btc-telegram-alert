@@ -6,6 +6,10 @@ import time
 
 import time
 
+import time
+import requests
+import pandas as pd
+
 def get_ohlcv(symbol="BTCUSDT_UMCBL", interval="15m", limit=100):
     interval_map = {
         "1m": "60",
@@ -35,7 +39,9 @@ def get_ohlcv(symbol="BTCUSDT_UMCBL", interval="15m", limit=100):
     for _ in range(3):
         response = requests.get(url, params=params)
         if response.status_code == 200:
-            data = response.json().get("data")
+            data = response.json()
+            if isinstance(data, dict):
+                data = data.get("data")
             if data:
                 df = pd.DataFrame(data, columns=[
                     "timestamp", "open", "high", "low", "close", "volume", "turnover"
