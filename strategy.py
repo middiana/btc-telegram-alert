@@ -44,7 +44,8 @@ def get_ohlcv(symbol="BTCUSDT_UMCBL", interval="15m", limit=100):
                 df = pd.DataFrame(data, columns=[
                     "timestamp", "open", "high", "low", "close", "volume", "turnover"
                 ])
-                df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
+                # ✅ 경고 제거: 문자열이 올 수도 있으므로 숫자로 먼저 변환
+                df["timestamp"] = pd.to_datetime(pd.to_numeric(df["timestamp"]), unit="ms")
                 df = df.sort_values("timestamp").reset_index(drop=True)
                 for col in ["open", "high", "low", "close", "volume", "turnover"]:
                     df[col] = df[col].astype(float)
