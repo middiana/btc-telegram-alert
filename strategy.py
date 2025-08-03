@@ -3,6 +3,22 @@ import requests
 import pandas as pd
 import numpy as np
 
+# 🧠 텔레그램 설정
+BOT_TOKEN = "8454656493:AAGjqH4zt2Mn-HBleMtCrFgsXLwModMDbC8"
+CHAT_ID = "7426355357"
+
+def send_telegram_message(message):
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": CHAT_ID,
+        "text": message,
+        "parse_mode": "HTML"
+    }
+    try:
+        requests.post(url, data=payload)
+    except Exception as e:
+        print(f"❌ 텔레그램 전송 오류: {e}")
+
 def get_ohlcv(symbol="BTCUSDT_UMCBL", interval="15m", limit=100):
     interval_map = {
         "1m": "60",
@@ -44,7 +60,6 @@ def get_ohlcv(symbol="BTCUSDT_UMCBL", interval="15m", limit=100):
                 df = pd.DataFrame(data, columns=[
                     "timestamp", "open", "high", "low", "close", "volume", "turnover"
                 ])
-                # ✅ 경고 제거: 문자열이 올 수도 있으므로 숫자로 먼저 변환
                 df["timestamp"] = pd.to_datetime(pd.to_numeric(df["timestamp"]), unit="ms")
                 df = df.sort_values("timestamp").reset_index(drop=True)
                 for col in ["open", "high", "low", "close", "volume", "turnover"]:
@@ -114,9 +129,15 @@ def check_signal():
         stop_loss = entry_price * 0.95
         take_profit = entry_price * 1.10
 
-        print("📈 [롱 진입 신호 포착]")
-        print(f"조건 만족: {conditions}")
-        print(f"진입가: {entry_price:.2f} / 손절가: {stop_loss:.2f} / 익절가: {take_profit:.2f}")
+        msg = (
+            f"📈 <b>[롱 진입 신호 포착]</b>\n"
+            f"🧩 조건 만족: {', '.join(conditions)}\n"
+            f"💰 진입가: {entry_price:.2f}\n"
+            f"❌ 손절가: {stop_loss:.2f}\n"
+            f"✅ 익절가: {take_profit:.2f}"
+        )
+        print(msg)
+        send_telegram_message(msg)
         return {
             "entry_price": entry_price,
             "stop_loss": stop_loss,
