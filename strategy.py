@@ -1,54 +1,64 @@
+from utils import (
+    get_ohlcv, calculate_rsi, calculate_bollinger_bands, calculate_ema,
+    get_support_resistance, get_channel_range, get_nasdaq_trend, get_crypto_news
+)
 from config import SYMBOL, INTERVAL
-import random
 
 def check_long_signal():
-    # 예시 조건 (랜덤, 실제 로직 대체)
-    conditions_met = random.sample([
-        "RSI < 40",
-        "볼린저밴드 하단 접근",
-        "EMA20 지지",
-        "다중 지지선 접근",
-        "추세 둔화 캔들"
-    ], k=3)  # 최소 2개 만족이라 가정
+    df = get_ohlcv(SYMBOL, INTERVAL, limit=100)
+    if df.empty:
+        return None
 
-    condition_count = len(conditions_met)
-    price = 61000  # 예시 진입가
-    stop_loss = price * 0.95
-    take_profit = price * 1.10
+    rsi = calculate_rsi(df)
+    bb_upper, bb_lower = calculate_bollinger_bands(df)
+    ema20 = calculate_ema(df, 20)
+    ema50 = calculate_ema(df, 50)
 
-    leverage = {2: "2x", 3: "3x", 4: "5x", 5: "5x"}.get(condition_count, "2x")
+    current_price = df["close"].iloc[-1]
+    rsi_now = rsi.iloc[-1]
+    bb_lower_now = bb_lower.iloc[-1]
+    ema20_now = ema20.iloc[-1]
+    ema50_now = ema50.iloc[-1]
 
-    levels = {
-        "5m": {"지지선": "60,800", "저항선": "61,400", "채널": "60,700 ~ 61,500"},
-        "15m": {"지지선": "60,500", "저항선": "61,800", "채널": "60,400 ~ 61,900"},
-        "30m": {"지지선": "60,000", "저항선": "62,000", "채널": "59,900 ~ 62,100"},
-        "1h": {"지지선": "59,800", "저항선": "62,500", "채널": "59,600 ~ 62,600"},
-        "4h": {"지지선": "59,000", "저항선": "63,000", "채널": "58,800 ~ 63,200"},
-        "1d": {"지지선": "57,000", "저항선": "65,000", "채널": "56,500 ~ 65,500"},
-    }
+    conditions = []
 
-    nasdaq_info = "나스닥 지수 RSI 45, 15분봉 저항 접근 중, 추세 약세"
-    news_summary = "📉 Fed 금리 동결 시사, 📈 BTC ETF 자금 순유입 지속, 🌍 바이낸스 규제 불확실성"
+    if rsi_now < 40:
+        conditions.append("RSI < 40")
+    if current_price <= bb_lower_now * 1.01:
+        conditions.append("볼밴 하단 접근")
+    if current_price >= ema20_now:
+        conditions.append("EMA20 지지")
+    if current_price >= ema50_now:
+        conditions.append("EMA50 지지")
+    if current_price <= df["low"].rolling(window=30).min().iloc[-1] * 1.03:
+        conditions.append("멀티타임 지지선 접근")
 
-    message = f"""📢 <b>[영빈 선물전략 v1.2]</b>
+    if len(conditions) >= 2:
+        stop_loss = round(current_price * 0.95, 2)
+        take_profit = round(current_price * 1.10, 2)
 
-🟢 <b>롱 진입 신호 발생</b>
-조건 만족 수: {condition_count}개 → <b>{', '.join(conditions_met)}</b>
+        leverage = 2
+        if len(conditions) >= 4:
+            leverage = 5
+        elif len(conditions) == 3:
+            leverage = 3
 
-📍 <b>진입가:</b> {price:.2f} USDT
-⛔ <b>손절가:</b> {stop_loss:.2f} USDT
-🎯 <b>익절가:</b> {take_profit:.2f} USDT
-📌 <b>추천 레버리지:</b> {leverage}
+        support, resistance = get_support_resistance(df)
+        channel_low, channel_high = get_channel_range(df)
+        nasdaq = get_nasdaq_trend()
+        news = get_crypto_news()
 
-📊 <b>다중 지지/저항선</b>
-""" + "\n".join([
-        f"⏱️ <b>{tf}</b> → 지지: {lv['지지선']} / 저항: {lv['저항선']} / 채널: {lv['채널']}"
-        for tf, lv in levels.items()
-    ]) + f"""
-
-📈 <b>나스닥 추세 요약</b>: {nasdaq_info}
-
-📰 <b>글로벌 뉴스 요약</b>: {news_summary}
-"""
-
-    return message
+        return {
+            "entry_price": round(current_price, 2),
+            "stop_loss": stop_loss,
+            "take_profit": take_profit,
+            "conditions": conditions,
+            "leverage": leverage,
+            "support": support,
+            "resistance": resistance,
+            "channel_low": channel_low,
+            "channel_high": channel_high,
+            "nasdaq": nasdaq,
+            "news": news
+        }
+    return None
