@@ -5,11 +5,10 @@ from utils import (
 from config import SYMBOL, INTERVAL
 
 def check_long_signal():
-    df = get_ohlcv(SYMBOL, INTERVAL, limit=100)
+    df = get_ohlcv(SYMBOL, INTERVAL)
     if df.empty:
         return None
 
-    # 기술 지표 계산
     rsi = calculate_rsi(df)
     bb_upper, bb_lower = calculate_bollinger_bands(df)
     ema20 = calculate_ema(df, 20)
@@ -23,7 +22,6 @@ def check_long_signal():
 
     conditions = []
 
-    # 조건별 체크
     if rsi_now < 40:
         conditions.append("RSI < 40")
     if current_price <= bb_lower_now * 1.01:
@@ -39,7 +37,6 @@ def check_long_signal():
         stop_loss = round(current_price * 0.95, 2)
         take_profit = round(current_price * 1.10, 2)
 
-        # 조건 수에 따라 레버리지 설정
         leverage = 2
         if len(conditions) >= 4:
             leverage = 5
