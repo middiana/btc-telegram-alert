@@ -1,6 +1,4 @@
-# config.py
-
-SYMBOL = "ETHUSDT_UMCBL"   # 일단 ETH로 교체해서 테스트
+SYMBOL = "BTCUSDT_UMCBL"  # ← Bitget 선물 심볼
 INTERVAL = "15m"
 
 TELEGRAM_TOKEN = "8454656493:AAGjqH4zt2Mn-HBleMtCrFgsXLwModMDbC8"
