@@ -4,13 +4,13 @@ import numpy as np
 
 def get_ohlcv(symbol="BTCUSDT_UMCBL", interval="15m", limit=100):
     interval_map = {
-        "1m": 60,
-        "5m": 300,
-        "15m": 900,
-        "30m": 1800,
-        "1h": 3600,
-        "4h": 14400,
-        "1d": 86400,
+        "1m": "60",
+        "5m": "300",
+        "15m": "900",
+        "30m": "1800",
+        "1h": "3600",
+        "4h": "14400",
+        "1d": "86400",
     }
 
     granularity = interval_map.get(interval)
@@ -20,8 +20,8 @@ def get_ohlcv(symbol="BTCUSDT_UMCBL", interval="15m", limit=100):
     url = "https://api.bitget.com/api/mix/v1/market/candles"
     params = {
         "symbol": symbol,
-        "granularity": granularity,  # ✅ 숫자 그대로
-        "limit": limit               # ✅ 숫자 그대로
+        "granularity": granularity,  # ✅ 문자열(str)
+        "limit": str(limit)          # ✅ 문자열(str)
     }
 
     for _ in range(3):
@@ -40,7 +40,6 @@ def get_ohlcv(symbol="BTCUSDT_UMCBL", interval="15m", limit=100):
         else:
             print(f"❌ OHLCV 응답 실패: {response.text}")
     return pd.DataFrame()
-
 
 def calculate_indicators(df):
     df["EMA20"] = df["close"].ewm(span=20).mean()
