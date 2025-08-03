@@ -21,9 +21,12 @@ while True:
 
     try:
         signal = check_long_signal()
+        print("📦 check_long_signal() 반환값:", signal)  # 디버깅용 로그
+
         if signal:
             entry = signal["entry_price"]
             if entry != last_alert_price:
+                print("📢 조건 충족! 텔레그램 전송 중...")
                 msg = f"""🚨 *롱 진입 신호 발생!*
   
 *진입 조건:* {", ".join(signal['conditions'])}
@@ -40,7 +43,6 @@ while True:
 
 🔖 전략명: 영빈 선물전략 v1.2
 """
-                print("📢 조건 충족! 텔레그램 전송 중...")
                 send_telegram_message(msg)
                 last_alert_price = entry
             else:
@@ -48,7 +50,7 @@ while True:
         else:
             print("⏳ 조건 미충족.")
     except Exception as e:
-        print(f"❌ 오류 발생: {e}")
+        print(f"❌ 예외 발생! {e}")
 
-    print("🕒 5분 후 다시 실행\n")
+    print("🕒 5분 대기 후 반복\n")
     time.sleep(300)
