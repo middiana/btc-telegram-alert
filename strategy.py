@@ -1,108 +1,54 @@
-import requests
-import pandas as pd
-import numpy as np
-from utils import get_support_resistance_levels, get_channel_levels, get_nasdaq_info, get_latest_news
-from config import SYMBOL
-
-def get_ohlcv(symbol, interval, limit=100):
-    url = f"https://api.bitget.com/api/v2/market/candles"
-    params = {
-        "symbol": symbol,
-        "granularity": interval,
-        "limit": limit
-    }
-    response = requests.get(url, params=params)
-    raw_data = response.json().get("data", [])
-    if not raw_data or not isinstance(raw_data, list):
-        print("⚠️ 데이터 없음")
-        return None
-    df = pd.DataFrame(raw_data, columns=[
-        "timestamp", "open", "high", "low", "close", "volume", "quote_volume"
-    ])
-    df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
-    df[["open", "high", "low", "close", "volume"]] = df[["open", "high", "low", "close", "volume"]].astype(float)
-    return df[::-1].reset_index(drop=True)
-
-def calculate_indicators(df):
-    df["EMA20"] = df["close"].ewm(span=20).mean()
-    df["EMA50"] = df["close"].ewm(span=50).mean()
-    df["RSI"] = compute_rsi(df["close"], 14)
-
-    bb_std = df["close"].rolling(window=20).std()
-    df["BB_upper"] = df["EMA20"] + 2 * bb_std
-    df["BB_lower"] = df["EMA20"] - 2 * bb_std
-    return df
-
-def compute_rsi(series, period=14):
-    delta = series.diff()
-    gain = delta.where(delta > 0, 0)
-    loss = -delta.where(delta < 0, 0)
-    avg_gain = gain.rolling(window=period).mean()
-    avg_loss = loss.rolling(window=period).mean()
-    rs = avg_gain / avg_loss
-    return 100 - (100 / (1 + rs))
+from config import SYMBOL, INTERVAL
+import random
 
 def check_long_signal():
-    df = get_ohlcv(SYMBOL, interval="900")  # 15분봉
-    if df is None or df.empty:
-        return None
+    # 예시 조건 (랜덤, 실제 로직 대체)
+    conditions_met = random.sample([
+        "RSI < 40",
+        "볼린저밴드 하단 접근",
+        "EMA20 지지",
+        "다중 지지선 접근",
+        "추세 둔화 캔들"
+    ], k=3)  # 최소 2개 만족이라 가정
 
-    df = calculate_indicators(df)
-    latest = df.iloc[-1]
+    condition_count = len(conditions_met)
+    price = 61000  # 예시 진입가
+    stop_loss = price * 0.95
+    take_profit = price * 1.10
 
-    conditions = []
-    if latest["RSI"] < 40:
-        conditions.append("RSI < 40")
-    if latest["close"] <= latest["BB_lower"] * 1.01:
-        conditions.append("볼밴 하단 접근")
-    if latest["close"] > latest["EMA20"]:
-        conditions.append("EMA20 지지 확인")
-    if latest["close"] > latest["EMA50"]:
-        conditions.append("EMA50 지지 확인")
-    if latest["EMA20"] > df["EMA20"].iloc[-2]:
-        conditions.append("추세 반등")
+    leverage = {2: "2x", 3: "3x", 4: "5x", 5: "5x"}.get(condition_count, "2x")
 
-    if len(conditions) < 2:
-        return None
-
-    entry = round(latest["close"], 2)
-    stop = round(entry * 0.95, 2)
-    target = round(entry * 1.10, 2)
-
-    # 추천 레버리지
-    if len(conditions) >= 4:
-        leverage = "5x (강력 신호)"
-    elif len(conditions) == 3:
-        leverage = "3x (중간 신호)"
-    else:
-        leverage = "2x (약한 신호)"
-
-    support_resist = get_support_resistance_levels(df)
-    channel = get_channel_levels(df)
-    nasdaq = get_nasdaq_info()
-    news = get_latest_news()
-
-    message = f"""📈 [롱 진입 신호 포착]
-조건 만족: {conditions}
-진입가: {entry} / 손절가: {stop} / 익절가: {target}
-추천 레버리지: {leverage}
-
-📊 지지/저항선
-{support_resist}
-
-📉 채널 구간
-{channel}
-
-📊 나스닥 지수 정보
-{nasdaq}
-
-🗞️ 주요 뉴스 요약
-{news}
-
-📌 전략: 영빈 선물전략 v1.2
-"""
-    return {
-        "entry_price": entry,
-        "conditions": conditions,
-        "message": message
+    levels = {
+        "5m": {"지지선": "60,800", "저항선": "61,400", "채널": "60,700 ~ 61,500"},
+        "15m": {"지지선": "60,500", "저항선": "61,800", "채널": "60,400 ~ 61,900"},
+        "30m": {"지지선": "60,000", "저항선": "62,000", "채널": "59,900 ~ 62,100"},
+        "1h": {"지지선": "59,800", "저항선": "62,500", "채널": "59,600 ~ 62,600"},
+        "4h": {"지지선": "59,000", "저항선": "63,000", "채널": "58,800 ~ 63,200"},
+        "1d": {"지지선": "57,000", "저항선": "65,000", "채널": "56,500 ~ 65,500"},
     }
+
+    nasdaq_info = "나스닥 지수 RSI 45, 15분봉 저항 접근 중, 추세 약세"
+    news_summary = "📉 Fed 금리 동결 시사, 📈 BTC ETF 자금 순유입 지속, 🌍 바이낸스 규제 불확실성"
+
+    message = f"""📢 <b>[영빈 선물전략 v1.2]</b>
+
+🟢 <b>롱 진입 신호 발생</b>
+조건 만족 수: {condition_count}개 → <b>{', '.join(conditions_met)}</b>
+
+📍 <b>진입가:</b> {price:.2f} USDT
+⛔ <b>손절가:</b> {stop_loss:.2f} USDT
+🎯 <b>익절가:</b> {take_profit:.2f} USDT
+📌 <b>추천 레버리지:</b> {leverage}
+
+📊 <b>다중 지지/저항선</b>
+""" + "\n".join([
+        f"⏱️ <b>{tf}</b> → 지지: {lv['지지선']} / 저항: {lv['저항선']} / 채널: {lv['채널']}"
+        for tf, lv in levels.items()
+    ]) + f"""
+
+📈 <b>나스닥 추세 요약</b>: {nasdaq_info}
+
+📰 <b>글로벌 뉴스 요약</b>: {news_summary}
+"""
+
+    return message
