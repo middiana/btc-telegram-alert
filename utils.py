@@ -1,12 +1,7 @@
 import requests
 import pandas as pd
-from datetime import datetime
 
-import requests
-import pandas as pd
-from datetime import datetime
-
-def get_ohlcv(symbol, interval, limit=100):
+def get_ohlcv(symbol, interval):
     granularity_map = {
         "1m": 60,
         "5m": 300,
@@ -21,12 +16,11 @@ def get_ohlcv(symbol, interval, limit=100):
     url = "https://api.bitget.com/api/mix/v1/market/candles"
     params = {
         "symbol": symbol,
-        "granularity": granularity,
-        "limit": limit
+        "granularity": granularity
     }
 
     headers = {
-        "User-Agent": "Mozilla/5.0",  # ✅ 일부 서버에서 필수
+        "User-Agent": "Mozilla/5.0",
         "Accept": "application/json"
     }
 
@@ -36,12 +30,14 @@ def get_ohlcv(symbol, interval, limit=100):
             print(f"❌ 데이터 요청 실패: {response.status_code} - {response.text}")
             return pd.DataFrame()
 
-        raw = response.json().get("data", [])
-        if not raw:
+        data = response.json().get("data", [])
+        if not data:
             print("⚠️ 받은 데이터가 비어있음")
             return pd.DataFrame()
 
-        df = pd.DataFrame(raw, columns=["timestamp", "open", "high", "low", "close", "volume", "_"])
+        df = pd.DataFrame(data, columns=[
+            "timestamp", "open", "high", "low", "close", "volume", "_"
+        ])
         df = df.astype(float)
         df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
         return df.sort_values(by="timestamp").reset_index(drop=True)
@@ -49,7 +45,6 @@ def get_ohlcv(symbol, interval, limit=100):
     except Exception as e:
         print(f"❌ get_ohlcv 예외 발생: {e}")
         return pd.DataFrame()
-
 
 def calculate_rsi(df, period=14):
     delta = df["close"].diff()
