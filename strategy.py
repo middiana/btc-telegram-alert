@@ -20,8 +20,8 @@ def get_ohlcv(symbol="BTCUSDT_UMCBL", interval="15m", limit=100):
     url = "https://api.bitget.com/api/mix/v1/market/candles"
     params = {
         "symbol": symbol,
-        "granularity": granularity,
-        "limit": str(limit)
+        "granularity": granularity,  # ✅ 숫자 그대로
+        "limit": limit               # ✅ 숫자 그대로
     }
 
     for _ in range(3):
@@ -40,6 +40,7 @@ def get_ohlcv(symbol="BTCUSDT_UMCBL", interval="15m", limit=100):
         else:
             print(f"❌ OHLCV 응답 실패: {response.text}")
     return pd.DataFrame()
+
 
 def calculate_indicators(df):
     df["EMA20"] = df["close"].ewm(span=20).mean()
