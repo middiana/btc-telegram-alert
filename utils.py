@@ -10,8 +10,11 @@ import requests
 import pandas as pd
 from datetime import datetime
 
+import requests
+import pandas as pd
+from datetime import datetime
+
 def get_ohlcv(symbol, interval, limit=100):
-    # 인터벌을 초 단위로 변환
     granularity_map = {
         "1m": 60,
         "5m": 300,
@@ -25,9 +28,9 @@ def get_ohlcv(symbol, interval, limit=100):
 
     url = "https://api.bitget.com/api/mix/v1/market/candles"
     params = {
-        "symbol": symbol,            # "BTCUSDT_UMCBL" 그대로 전달
-        "granularity": granularity,
-        "limit": limit
+        "symbol": symbol,          # 예: ETHUSDT_UMCBL
+        "granularity": granularity,  # ❗ string → int
+        "limit": limit               # ❗ string → int
     }
 
     try:
@@ -49,7 +52,6 @@ def get_ohlcv(symbol, interval, limit=100):
     except Exception as e:
         print(f"❌ get_ohlcv 예외 발생: {e}")
         return pd.DataFrame()
-
 
 def calculate_rsi(df, period=14):
     delta = df["close"].diff()
