@@ -3,10 +3,24 @@ import pandas as pd
 import numpy as np
 
 def get_ohlcv(symbol="BTCUSDT_UMCBL", interval="15m", limit=100):
-    url = f"https://api.bitget.com/api/v2/market/candles"
+    interval_map = {
+        "1m": 60,
+        "5m": 300,
+        "15m": 900,
+        "30m": 1800,
+        "1h": 3600,
+        "4h": 14400,
+        "1d": 86400,
+    }
+
+    granularity = interval_map.get(interval)
+    if granularity is None:
+        raise ValueError(f"Unsupported interval: {interval}")
+
+    url = "https://api.bitget.com/api/mix/v1/market/candles"
     params = {
         "symbol": symbol,
-        "granularity": interval,
+        "granularity": granularity,
         "limit": str(limit)
     }
 
@@ -16,11 +30,11 @@ def get_ohlcv(symbol="BTCUSDT_UMCBL", interval="15m", limit=100):
             data = response.json().get("data")
             if data:
                 df = pd.DataFrame(data, columns=[
-                    "timestamp", "open", "high", "low", "close", "volume", "quoteVolume"
+                    "timestamp", "open", "high", "low", "close", "volume", "turnover"
                 ])
                 df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
                 df = df.sort_values("timestamp").reset_index(drop=True)
-                for col in ["open", "high", "low", "close", "volume", "quoteVolume"]:
+                for col in ["open", "high", "low", "close", "volume", "turnover"]:
                     df[col] = df[col].astype(float)
                 return df
         else:
