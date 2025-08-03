@@ -2,22 +2,47 @@ import requests
 import pandas as pd
 from datetime import datetime
 
-def get_ohlcv(symbol, interval, limit=500):
-    url = f"https://api.bitget.com/api/v2/market/candles?symbol={symbol}&granularity={interval}&limit={limit}"
-    response = requests.get(url)
-    if response.status_code == 200:
-        data = response.json()["data"]
-        df = pd.DataFrame(data, columns=[
-            "timestamp", "open", "high", "low", "close", "volume"
-        ])
-        df = df.sort_values(by="timestamp")
-        df["close"] = df["close"].astype(float)
-        df["low"] = df["low"].astype(float)
-        df["high"] = df["high"].astype(float)
-        return df.reset_index(drop=True)
-    else:
-        print(f"❌ 데이터 요청 실패: {response.status_code}")
+import requests
+import pandas as pd
+from datetime import datetime
+
+def get_ohlcv(symbol, interval, limit=100):
+    # INTERVAL은 예: "15m" → 900초로 변환 필요
+    granularity_map = {
+        "1m": 60,
+        "5m": 300,
+        "15m": 900,
+        "30m": 1800,
+        "1h": 3600,
+        "4h": 14400,
+        "1d": 86400
+    }
+
+    granularity = granularity_map.get(interval, 900)
+
+    url = "https://api.bitget.com/api/mix/v1/market/candles"
+    params = {
+        "symbol": f"{symbol}_UMCBL",  # 무기한 선물 기준
+        "granularity": granularity,
+        "limit": limit
+    }
+
+    try:
+        response = requests.get(url, params=params)
+        if response.status_code != 200:
+            print(f"❌ 데이터 요청 실패: {response.status_code}")
+            return pd.DataFrame()
+
+        raw = response.json()["data"]
+        df = pd.DataFrame(raw, columns=["timestamp", "open", "high", "low", "close", "volume", "_"])
+        df = df.astype(float)
+        df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
+        return df.sort_values(by="timestamp").reset_index(drop=True)
+
+    except Exception as e:
+        print(f"❌ get_ohlcv 예외 발생: {e}")
         return pd.DataFrame()
+
 
 def calculate_rsi(df, period=14):
     delta = df["close"].diff()
