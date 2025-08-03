@@ -1,44 +1,50 @@
 import requests
 import pandas as pd
-import time
-import logging
+import numpy as np
 
+# Bitget API에서 OHLCV 데이터 가져오기
 def get_ohlcv(symbol, interval, limit=100):
-    end_time = int(time.time() * 1000)
-    start_time = end_time - interval * 1000 * limit
     url = "https://api.bitget.com/api/mix/v1/market/candles"
     params = {
         "symbol": symbol,
         "granularity": interval,
-        "startTime": start_time,
-        "endTime": end_time
+        "limit": limit
     }
-    try:
-        response = requests.get(url, params=params)
-        if response.status_code == 200:
-            raw_data = response.json()["data"]
-            df = pd.DataFrame(raw_data, columns=["timestamp", "open", "high", "low", "close", "volume"])
-            df = df.sort_values(by="timestamp")
-            df["close"] = df["close"].astype(float)
-            df["low"] = df["low"].astype(float)
-            df["high"] = df["high"].astype(float)
-            return df.reset_index(drop=True)
-        else:
-            logging.error(f"❌ 데이터 요청 실패: {response.status_code} - {response.text}")
-            return pd.DataFrame()
-    except Exception as e:
-        logging.error(f"❌ OHLCV 요청 중 예외 발생: {e}")
-        return pd.DataFrame()
+    response = requests.get(url, params=params)
 
-def send_telegram_message(token, chat_id, text):
-    url = f"https://api.telegram.org/bot{token}/sendMessage"
-    payload = {
-        "chat_id": chat_id,
-        "text": text
-    }
-    try:
-        response = requests.post(url, data=payload)
-        if response.status_code != 200:
-            logging.error(f"❌ 텔레그램 전송 실패: {response.text}")
-    except Exception as e:
-        logging.error(f"❌ 텔레그램 예외 발생: {e}")
+    if response.status_code == 200:
+        data = response.json()["data"]
+        df = pd.DataFrame(data, columns=[
+            "timestamp", "open", "high", "low", "close", "volume"
+        ])
+        df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
+        df = df.astype({
+            "open": float, "high": float, "low": float,
+            "close": float, "volume": float
+        })
+        df.sort_values("timestamp", inplace=True)
+        return df
+    else:
+        print(f"❌ 데이터 요청 실패: {response.status_code} - {response.text}")
+        return None
+
+# RSI 계산 함수
+def calculate_rsi(data, period=14):
+    delta = data['close'].diff()
+    gain = delta.where(delta > 0, 0).rolling(window=period).mean()
+    loss = -delta.where(delta < 0, 0).rolling(window=period).mean()
+    rs = gain / loss
+    rsi = 100 - (100 / (1 + rs))
+    return rsi
+
+# 볼린저 밴드 계산 함수
+def calculate_bollinger_bands(data, period=20, num_std_dev=2):
+    ma = data['close'].rolling(window=period).mean()
+    std = data['close'].rolling(window=period).std()
+    upper_band = ma + num_std_dev * std
+    lower_band = ma - num_std_dev * std
+    return upper_band, lower_band
+
+# EMA 계산
+def calculate_ema(data, period=20):
+    return data['close'].ewm(span=period, adjust=False).mean()
