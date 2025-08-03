@@ -14,12 +14,17 @@ def send_telegram_message(text):
 
 last_alert_price = None
 
+print("🔄 [영빈 선물전략 v1.2] 실행 시작됨.")
+
 while True:
-    signal = check_long_signal()
-    if signal:
-        entry = signal["entry_price"]
-        if entry != last_alert_price:
-            msg = f"""🚨 *롱 진입 신호 발생!*
+    print("✅ 전략 점검 중...")
+
+    try:
+        signal = check_long_signal()
+        if signal:
+            entry = signal["entry_price"]
+            if entry != last_alert_price:
+                msg = f"""🚨 *롱 진입 신호 발생!*
   
 *진입 조건:* {", ".join(signal['conditions'])}
 *진입가:* {entry} USDT
@@ -35,6 +40,15 @@ while True:
 
 🔖 전략명: 영빈 선물전략 v1.2
 """
-            send_telegram_message(msg)
-            last_alert_price = entry
-    time.sleep(300)  # 5분 간격 실행
+                print("📢 조건 충족! 텔레그램 전송 중...")
+                send_telegram_message(msg)
+                last_alert_price = entry
+            else:
+                print("⏳ 동일한 가격 조건으로 이미 알림 전송됨.")
+        else:
+            print("⏳ 조건 미충족.")
+    except Exception as e:
+        print(f"❌ 오류 발생: {e}")
+
+    print("🕒 5분 후 다시 실행\n")
+    time.sleep(300)
