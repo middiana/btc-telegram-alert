@@ -6,8 +6,12 @@ import requests
 import pandas as pd
 from datetime import datetime
 
+import requests
+import pandas as pd
+from datetime import datetime
+
 def get_ohlcv(symbol, interval, limit=100):
-    # INTERVAL은 예: "15m" → 900초로 변환 필요
+    # 인터벌을 초 단위로 변환
     granularity_map = {
         "1m": 60,
         "5m": 300,
@@ -17,12 +21,11 @@ def get_ohlcv(symbol, interval, limit=100):
         "4h": 14400,
         "1d": 86400
     }
-
     granularity = granularity_map.get(interval, 900)
 
     url = "https://api.bitget.com/api/mix/v1/market/candles"
     params = {
-        "symbol": f"{symbol}_UMCBL",  # 무기한 선물 기준
+        "symbol": symbol,            # "BTCUSDT_UMCBL" 그대로 전달
         "granularity": granularity,
         "limit": limit
     }
@@ -33,7 +36,11 @@ def get_ohlcv(symbol, interval, limit=100):
             print(f"❌ 데이터 요청 실패: {response.status_code}")
             return pd.DataFrame()
 
-        raw = response.json()["data"]
+        raw = response.json().get("data", [])
+        if not raw:
+            print("⚠️ 받은 데이터가 비어있음")
+            return pd.DataFrame()
+
         df = pd.DataFrame(raw, columns=["timestamp", "open", "high", "low", "close", "volume", "_"])
         df = df.astype(float)
         df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
