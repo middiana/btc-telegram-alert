@@ -1,4 +1,0 @@
-pandas
-ta==0.13.15b0
-requests
-python-telegram-bot==13.15
